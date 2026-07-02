@@ -5,7 +5,7 @@ Category layer removed because each category currently maps to one method.
 
 from experta import MATCH, NOT, TEST, Rule
 
-from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget
+from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget, ProjectContext
 from hpo_expert.facts.reasoning import (
     HPOMethodChoice,
     ReasoningStage,
@@ -80,7 +80,7 @@ class HPOMethodRules:
         ),
         TEST(
             lambda d, cost, budget:
-            d >= 6 and (cost == "high" or budget == "high")
+            d >= 5 and (cost == "high" or budget == "high")
         ),
         NOT(HPOMethodChoice()),
         salience=84,
@@ -233,6 +233,35 @@ class HPOMethodRules:
                 justification=(
                     "Balanced default when neither exhaustive "
                     "search nor Bayesian optimization is clearly best."
+                ),
+                reasons=reasons,
+                priority=Priority.MEDIUM.value,
+                confidence=confidence_from_score(4),
+            )
+        )
+        
+
+    #advanced_strategy: Two-Stage Hybrid Tuning
+    @Rule(
+        ProjectContext(optimization_goal="maximize_accuracy"), 
+        ComputeConstraints(compute_budget="high"),             
+        HPOMethodChoice(method=MATCH.selected_method),         
+        TEST(lambda selected_method: selected_method in ["bayesian_optimization", "random_search"]),
+        salience=20 
+    )
+    def recommend_hybrid_refinement(self, selected_method):
+        reasons = [
+            f"Your budget is high, and your goal is absolute accuracy.",
+            f"After {selected_method} locates the optimal region, a narrow local Grid Search eliminates stochastic noise.",
+        ]
+            
+        self.declare(
+            Recommendation(
+                category="advanced_strategy(for hpo method)",
+                recommendation="Two-Stage Hybrid Tuning",
+                justification=(
+                    f"Maximize performance by running a localized, dense Grid Search "
+                    f"around the best hyperparameter configuration found by {selected_method}."
                 ),
                 reasons=reasons,
                 priority=Priority.MEDIUM.value,

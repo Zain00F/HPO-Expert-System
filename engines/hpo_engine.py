@@ -10,9 +10,10 @@ from hpo_expert.facts.reasoning import Recommendation
 from hpo_expert.rules.hpo_methods import HPOMethodRules
 from hpo_expert.rules.optimizers import OptimizerRules
 from hpo_expert.rules.stage_control import StageControlRules
+from hpo_expert.rules.search_space import SearchSpaceRules  
 
 
-class HPOExpertEngine(StageControlRules, HPOMethodRules, KnowledgeEngine):
+class HPOExpertEngine(StageControlRules, HPOMethodRules, OptimizerRules, SearchSpaceRules, KnowledgeEngine):
 
     def recommendations_as_dicts(self) -> list[dict]:
         """Serialize recommendations for reporting."""
@@ -30,3 +31,11 @@ class HPOExpertEngine(StageControlRules, HPOMethodRules, KnowledgeEngine):
                     }
                 )
         return out
+
+
+def run_consultation(engine: KnowledgeEngine, facts: Iterable[Any]) -> KnowledgeEngine:
+    engine.reset()
+    for fact in facts:
+        engine.declare(fact)
+    engine.run()
+    return engine

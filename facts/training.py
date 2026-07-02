@@ -10,15 +10,15 @@ class CurrentTrainingConfig(Fact):
     gradient_clipping = Field(bool, default=False)
 
 
-# class TrainingObservation(Fact):
+class TrainingObservation(Fact):
 
-#     training_diverged = Field(bool, default=False)
-#     nan_detected = Field(bool, default=False)
-#     overfitting_detected = Field(bool, default=False)
-#     underfitting_detected = Field(bool, default=False)
-#     oscillating_loss = Field(bool, default=False)
-#     plateau_detected = Field(bool, default=False)
-#     slow_convergence = Field(bool, default=False)
-#     high_variance_training = Field(bool, default=False)
-#     vanishing_gradients = Field(bool, default=False)
-#     exploding_gradients = Field(bool, default=False)
+    training_diverged = Field(bool, default=False)
+    nan_detected = Field(bool, default=False)
+    overfitting_detected = Field(bool, default=False)
+    underfitting_detected = Field(bool, default=False)
+    oscillating_loss = Field(bool, default=False)
+    plateau_detected = Field(bool, default=False)
+    slow_convergence = Field(bool, default=False)
+    high_variance_training = Field(bool, default=False)
+    vanishing_gradients = Field(bool, default=False)
+    exploding_gradients = Field(bool, default=False)

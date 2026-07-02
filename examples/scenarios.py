@@ -59,7 +59,7 @@ def scenario_expensive_deep() -> list:
             search_space_dimensions=8,
             trial_cost="high",
         ),
-        OptimizationBudget(max_trials=30, max_total_runtime_hours=36.0),
+        OptimizationBudget(max_trials=50, max_total_runtime_hours=36.0),
         ModelArchitecture(
             architecture_type="transformer",
             num_layers=12,

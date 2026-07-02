@@ -52,3 +52,15 @@ class StageControlRules:
     def mark_optimizer_stage_complete(self):
         """Placeholder — future transition to search_space stage."""
         pass
+
+
+    @Rule(
+        AS.stage << ReasoningStage(current=ReasoningStageId.OPTIMIZER_SPECIFIC.value),
+        OptimizerChoice(),
+        NOT(ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value)),
+        salience=90,
+    )
+    def advance_to_search_space(self, stage):
+        """عند اختيار المحسن بنجاح، يتم سحب المرحلة الحالية والانتقال فوراً لترتيب فضاء البحث"""
+        self.retract(stage)
+        self.declare(ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value))    

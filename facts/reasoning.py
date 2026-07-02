@@ -62,3 +62,11 @@ class Recommendation(Fact):
     reasons = Field(list, default=list)
     priority = Field(str, mandatory=True)
     confidence = Field(str, default="medium")
+
+
+class SearchSpaceChoice(Fact):
+    """
+    profile_mode: bn_safe | extreme_focus | accuracy_fanova | speed_fanova | transformer_balanced | cnn_high_risk | cnn_standard
+    """
+    mode = Field(str, mandatory=True)
+    confidence = Field(str, mandatory=True)

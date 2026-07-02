@@ -29,8 +29,20 @@ def format_report(recommendations: list[Any], title: str = "HPO Expert Report") 
     for rec in recommendations:
         by_category.setdefault(rec["category"], []).append(rec)
 
+    CATEGORY_ORDER = [
+        "hpo_method",          
+        "advanced_strategy(for hpo method)",   
+        "optimizer_family",    
+        "optimizer_specific",
+        "search_space",  
+    ]
+
+    sorted_categories = sorted(
+        by_category.keys(),
+        key=lambda c: (CATEGORY_ORDER.index(c) if c in CATEGORY_ORDER else len(CATEGORY_ORDER), c)
+    )
     parts = [title, "=" * len(title), ""]
-    for category in sorted(by_category):
+    for category in sorted_categories:
         parts.append(f"## {category.replace('_', ' ').title()}")
         parts.append("")
         for rec in by_category[category]:
