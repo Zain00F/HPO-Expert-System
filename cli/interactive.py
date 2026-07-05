@@ -17,6 +17,7 @@ from hpo_expert.facts.model import DatasetProfile, ModelArchitecture
 from hpo_expert.facts.training import TrainingObservation
 from hpo_expert.utils.enums import ConsultationTypeId
 from hpo_expert.utils.explanations import format_report
+from hpo_expert.utils.heuristic_thresholds import HeuristicThresholds as HT
 
 
 def _ask(prompt: str, default: str | None = None) -> str:
@@ -45,26 +46,6 @@ def _ask_bool(prompt: str, default: bool = True) -> bool:
     default_s = "y" if default else "n"
     raw = _ask(f"{prompt} (y/n)", default_s).lower()
     return raw in {"y", "yes", "1", "true"}
-
-
-def _ask_optional_float(prompt: str) -> float | None:
-    raw = input(f"{prompt} (leave blank to skip): ").strip()
-    if not raw:
-        return None
-    try:
-        return float(raw)
-    except ValueError:
-        return None
-
-
-def _ask_optional_int(prompt: str) -> int | None:
-    raw = input(f"{prompt} (leave blank to skip): ").strip()
-    if not raw:
-        return None
-    try:
-        return int(raw)
-    except ValueError:
-        return None
 
 
 def _select_consultation_type() -> str:
@@ -100,8 +81,10 @@ def gather_pre_training_facts() -> list:
 
     data_type = _ask("Data type (image / text / tabular / audio)", "image")
     samples = _ask_int("Total training sample count", 50_000)
-    classes_raw = input("Number of classes for classification (leave blank if N/A): ").strip()
-    classification_categories = int(classes_raw) if classes_raw else None
+    classification_categories = _ask_int(
+        "Number of classes for classification",
+        HT.DEFAULT_CLASSIFICATION_CATEGORIES,
+    )
     noise = _ask("Dataset noise (low / medium / high)", "low")
     balance = _ask("Class balance (balanced / imbalanced)", "balanced")
 
@@ -149,11 +132,11 @@ def gather_diagnosis_facts() -> list:
     nan_detected = _ask_bool("NaN loss encountered?", False)
     inf_detected = _ask_bool("Inf loss encountered?", False)
 
-    training_loss = _ask_optional_float("Training loss")
-    validation_loss = _ask_optional_float("Validation loss")
-    training_accuracy = _ask_optional_float("Training accuracy (0–100%)")
-    validation_accuracy = _ask_optional_float("Validation accuracy (0–100%)")
-    epochs_completed = _ask_optional_int("Epochs completed")
+    training_loss = _ask_float("Training loss", HT.DEFAULT_TRAINING_LOSS)
+    validation_loss = _ask_float("Validation loss", HT.DEFAULT_VALIDATION_LOSS)
+    training_accuracy = _ask_float("Training accuracy (0–100%)", HT.DEFAULT_TRAINING_ACCURACY)
+    validation_accuracy = _ask_float("Validation accuracy (0–100%)", HT.DEFAULT_VALIDATION_ACCURACY)
+    epochs_completed = _ask_int("Epochs completed", HT.DEFAULT_EPOCHS_COMPLETED)
 
     return [
         ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
@@ -185,8 +168,6 @@ def main() -> None:
         else "HPO Expert Report"
     )
     print("\n" + format_report(engine.recommendations_as_dicts(), title=title))
-    print("\n(Derived audit facts available via engine.facts in programmatic use.)\n")
-
 
 if __name__ == "__main__":
     main()

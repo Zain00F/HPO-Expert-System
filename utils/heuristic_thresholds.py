@@ -37,3 +37,12 @@ class HeuristicThresholds:
     # --- NaN / Inf causes (context facts) ---
     LR_TOO_HIGH_NAN = 0.01
     LR_TOO_HIGH_INF = 0.001
+
+    # --- Typical healthy-training baselines (CLI + TrainingObservation defaults) ---
+    # Cross-entropy ~0.45 train / ~0.50 val: small generalization gap, no over/underfit flags.
+    DEFAULT_TRAINING_LOSS = 0.45
+    DEFAULT_VALIDATION_LOSS = 0.50
+    DEFAULT_TRAINING_ACCURACY = 82.0
+    DEFAULT_VALIDATION_ACCURACY = 78.0
+    DEFAULT_EPOCHS_COMPLETED = 25
+    DEFAULT_CLASSIFICATION_CATEGORIES = 10

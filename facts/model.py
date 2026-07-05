@@ -1,5 +1,6 @@
 from experta import Fact, Field
 
+
 class ModelArchitecture(Fact):
     architecture_type = Field(str, mandatory=True)
     num_layers = Field(int, mandatory=True)
@@ -14,5 +15,5 @@ class DatasetProfile(Fact):
     sample_count = Field(int, mandatory=True)
     dataset_noise = Field(str, mandatory=True)
     class_balance = Field(str, mandatory=True)
-    num_classes = Field(int, default=None)
-    classification_categories = Field(int, default=None)
+    num_classes = Field(int, default=0)
+    classification_categories = Field(int, default=0)

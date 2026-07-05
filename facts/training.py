@@ -1,5 +1,8 @@
 from experta import Fact, Field
 
+from hpo_expert.utils.heuristic_thresholds import HeuristicThresholds as HT
+
+
 class CurrentTrainingConfig(Fact):
     optimizer = Field(str, mandatory=True)
     learning_rate = Field(float, mandatory=True)
@@ -11,10 +14,10 @@ class CurrentTrainingConfig(Fact):
 
 
 class TrainingObservation(Fact):
-    training_loss = Field(float, mandatory=False, default=None)
-    validation_loss = Field(float, mandatory=False, default=None)
-    training_accuracy = Field(float, mandatory=False, default=None)
-    validation_accuracy = Field(float, mandatory=False, default=None)
+    training_loss = Field(float, mandatory=False, default=HT.DEFAULT_TRAINING_LOSS)
+    validation_loss = Field(float, mandatory=False, default=HT.DEFAULT_VALIDATION_LOSS)
+    training_accuracy = Field(float, mandatory=False, default=HT.DEFAULT_TRAINING_ACCURACY)
+    validation_accuracy = Field(float, mandatory=False, default=HT.DEFAULT_VALIDATION_ACCURACY)
     nan_detected = Field(bool, default=False)
     inf_detected = Field(bool, default=False)
-    epochs_completed = Field(int, mandatory=False, default=None)
+    epochs_completed = Field(int, mandatory=False, default=HT.DEFAULT_EPOCHS_COMPLETED)

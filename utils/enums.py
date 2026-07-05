@@ -24,6 +24,7 @@ class DiagnosisIssue(str, Enum):
     UNDERFITTING = "underfitting"
     NAN_LOSS = "nan_loss"
     INF_LOSS = "inf_loss"
+    HEALTHY_TRAINING = "healthy_training"
 
 
 class DiagnosisCause(str, Enum):
@@ -47,6 +48,7 @@ class DiagnosisCause(str, Enum):
     GENERAL_UNDERFITTING = "general_underfitting"
     GENERAL_NAN_LOSS = "general_nan_loss"
     GENERAL_INF_LOSS = "general_inf_loss"
+    METRICS_WITHIN_NORMAL = "metrics_within_normal"
 
 
 class HPOMethodCategory(str, Enum):

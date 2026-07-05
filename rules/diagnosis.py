@@ -151,6 +151,20 @@ class DiagnosisRules:
             )
         )
 
+    @Rule(
+        ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
+        ReasoningStage(current=ReasoningStageId.DIAGNOSIS_IDENTIFY.value),
+        NOT(Diagnosis()),
+        salience=10,
+    )
+    def diagnose_healthy_training(self):
+        self.declare(
+            Diagnosis(
+                issue=DiagnosisIssue.HEALTHY_TRAINING.value,
+                confidence=confidence_from_score(3),
+            )
+        )
+
     # ------------------------------------------------------------------
     # Stage: diagnosis_identify — explain inferred Diagnosis
     # ------------------------------------------------------------------
@@ -238,6 +252,31 @@ class DiagnosisRules:
                 ],
                 priority=Priority.HIGH.value,
                 confidence=confidence_from_score(4),
+            )
+        )
+
+    @Rule(
+        ReasoningStage(current=ReasoningStageId.DIAGNOSIS_IDENTIFY.value),
+        Diagnosis(issue=DiagnosisIssue.HEALTHY_TRAINING.value),
+        NOT(Recommendation(category="diagnosis")),
+        salience=96,
+    )
+    def explain_diagnosis_healthy(self):
+        self.declare(
+            Recommendation(
+                category="diagnosis",
+                recommendation="Healthy Training",
+                justification=(
+                    "No overfitting, underfitting, or numerical failure detected "
+                    "from the supplied observations."
+                ),
+                reasons=[
+                    "Training and validation losses show a modest generalization gap",
+                    "Accuracy gap is within normal bounds",
+                    "No NaN or Inf loss reported",
+                ],
+                priority=Priority.MEDIUM.value,
+                confidence=confidence_from_score(3),
             )
         )
 
@@ -627,6 +666,25 @@ class DiagnosisRules:
         )
 
     # ------------------------------------------------------------------
+    # Stage: diagnosis_cause — healthy training
+    # ------------------------------------------------------------------
+
+    @Rule(
+        ReasoningStage(current=ReasoningStageId.DIAGNOSIS_CAUSE.value),
+        Diagnosis(issue=DiagnosisIssue.HEALTHY_TRAINING.value),
+        NOT(PossibleCause(diagnosis=DiagnosisIssue.HEALTHY_TRAINING.value)),
+        salience=10,
+    )
+    def cause_healthy_metrics_normal(self):
+        self.declare(
+            PossibleCause(
+                diagnosis=DiagnosisIssue.HEALTHY_TRAINING.value,
+                cause=DiagnosisCause.METRICS_WITHIN_NORMAL.value,
+                confidence=confidence_from_score(3),
+            )
+        )
+
+    # ------------------------------------------------------------------
     # Stage: diagnosis_cause — explain PossibleCause to user
     # ------------------------------------------------------------------
 
@@ -804,6 +862,19 @@ class DiagnosisRules:
     def explain_cause_invalid_loss(self, d):
         self._declare_possible_cause_rec(
             d, "Invalid loss computation", "The loss function may produce Inf for certain inputs."
+        )
+
+    @Rule(
+        ReasoningStage(current=ReasoningStageId.DIAGNOSIS_CAUSE.value),
+        PossibleCause(cause=DiagnosisCause.METRICS_WITHIN_NORMAL.value, diagnosis=MATCH.d),
+        NOT(Recommendation(category="possible_cause", recommendation="Metrics within normal range")),
+        salience=60,
+    )
+    def explain_cause_healthy_metrics(self, d):
+        self._declare_possible_cause_rec(
+            d,
+            "Metrics within normal range",
+            "Observed training and validation metrics are consistent with stable learning.",
         )
 
     def _declare_possible_cause_rec(self, diagnosis: str, label: str, justification: str) -> None:
@@ -1128,6 +1199,29 @@ class DiagnosisRules:
             "Inspect loss computation and intermediate activations for overflow.",
             ["First-line remediation for unexplained Inf loss"],
             Priority.HIGH,
+        )
+
+    @Rule(
+        ReasoningStage(current=ReasoningStageId.DIAGNOSIS_RECOMMEND.value),
+        PossibleCause(cause=DiagnosisCause.METRICS_WITHIN_NORMAL.value),
+        NOT(
+            Recommendation(
+                category="diagnosis_recommendation",
+                recommendation="Continue training and monitor validation metrics",
+            )
+        ),
+        salience=30,
+    )
+    def recommend_continue_healthy_training(self):
+        self._declare_action_rec(
+            "Continue training and monitor validation metrics",
+            "No corrective action required based on current observations.",
+            [
+                "Loss and accuracy gaps are within healthy bounds",
+                "Re-check if performance plateaus or validation metrics degrade",
+                "Consider hyperparameter tuning only if you need further gains",
+            ],
+            Priority.MEDIUM,
         )
 
     def _declare_action_rec(

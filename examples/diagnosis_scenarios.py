@@ -90,9 +90,18 @@ def scenario_inf_loss() -> list:
     ]
 
 
+def scenario_healthy_training() -> list:
+    """Default observation values — typical healthy training metrics."""
+    return [
+        ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
+        TrainingObservation(),
+    ]
+
+
 DIAGNOSIS_SCENARIOS = {
     "overfitting_gap": scenario_overfitting_gap,
     "underfitting_high_loss": scenario_underfitting_high_loss,
     "nan_loss": scenario_nan_loss,
     "inf_loss": scenario_inf_loss,
+    "healthy_training": scenario_healthy_training,
 }

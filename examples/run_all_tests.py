@@ -188,6 +188,19 @@ DIAGNOSIS_CHECKS = {
         "must_not_have_recommendations": ["search_space", "hpo_method"],
         "final_stage": "diagnosis_recommend",
     },
+    "healthy_training": {
+        "must_have_facts": {
+            "Diagnosis": lambda items: items[0].get("issue") == "healthy_training",
+        },
+        "recommendations": {
+            "diagnosis": ["Healthy Training"],
+            "diagnosis_recommendation": [
+                "Continue training and monitor validation metrics",
+            ],
+        },
+        "must_not_have_recommendations": ["search_space", "hpo_method"],
+        "final_stage": "diagnosis_recommend",
+    },
 }
 
 
