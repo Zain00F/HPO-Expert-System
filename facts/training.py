@@ -1,5 +1,6 @@
 from experta import Fact, Field
 
+
 class CurrentTrainingConfig(Fact):
     optimizer = Field(str, mandatory=True)
     learning_rate = Field(float, mandatory=True)
@@ -11,14 +12,18 @@ class CurrentTrainingConfig(Fact):
 
 
 class TrainingObservation(Fact):
+    """
+    Raw post-training observations supplied by the client.
+    The expert system infers diagnosis — the client never declares it.
 
-    training_diverged = Field(bool, default=False)
+    Accuracies are percentages in [0, 100] (e.g. 85.0 for 85%).
+    See docs/KNOWLEDGE_ACQUISITION_DIAGNOSIS.md for evidence definitions.
+    """
+
+    training_loss = Field(float, mandatory=False, default=None)
+    validation_loss = Field(float, mandatory=False, default=None)
+    training_accuracy = Field(float, mandatory=False, default=None)
+    validation_accuracy = Field(float, mandatory=False, default=None)
     nan_detected = Field(bool, default=False)
-    overfitting_detected = Field(bool, default=False)
-    underfitting_detected = Field(bool, default=False)
-    oscillating_loss = Field(bool, default=False)
-    plateau_detected = Field(bool, default=False)
-    slow_convergence = Field(bool, default=False)
-    high_variance_training = Field(bool, default=False)
-    vanishing_gradients = Field(bool, default=False)
-    exploding_gradients = Field(bool, default=False)
+    inf_detected = Field(bool, default=False)
+    epochs_completed = Field(int, mandatory=False, default=None)

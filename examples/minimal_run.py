@@ -6,7 +6,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Allow running without pip install (-m or direct script)
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -14,34 +13,49 @@ if str(_ROOT) not in sys.path:
 import hpo_expert  # noqa: F401 — Python 3.10+ experta compatibility
 
 from hpo_expert.engines.hpo_engine import HPOExpertEngine, run_consultation
+from hpo_expert.examples.diagnosis_scenarios import DIAGNOSIS_SCENARIOS
 from hpo_expert.examples.scenarios import SCENARIOS
 from hpo_expert.utils.explanations import format_report
 
 
 def main() -> None:
-    name = sys.argv[1] if len(sys.argv) > 1 else "expensive_deep"
-    if name not in SCENARIOS:
-        print(f"Unknown scenario '{name}'. Choose from: {', '.join(SCENARIOS)}")
+    diagnosis_mode = "--diagnosis" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--diagnosis"]
+    name = args[0] if args else ("overfitting_gap" if diagnosis_mode else "expensive_deep")
+
+    if diagnosis_mode:
+        scenarios = DIAGNOSIS_SCENARIOS
+        title_prefix = "Post-Training Diagnosis"
+    else:
+        scenarios = SCENARIOS
+        title_prefix = "HPO Expert"
+
+    if name not in scenarios:
+        print(f"Unknown scenario '{name}'. Choose from: {', '.join(scenarios)}")
         sys.exit(1)
 
-    facts = SCENARIOS[name]()
+    facts = scenarios[name]()
     engine = run_consultation(HPOExpertEngine(), facts)
     recs = engine.recommendations_as_dicts()
 
-    print(format_report(recs, title=f"HPO Expert — scenario: {name}"))
+    print(format_report(recs, title=f"{title_prefix} — scenario: {name}"))
     print()
     print("--- Derived facts (audit trail) ---")
+    skip = {
+        "InitialFact",
+        "Recommendation",
+        "ProjectContext",
+        "ComputeConstraints",
+        "OptimizationBudget",
+        "ModelArchitecture",
+        "DatasetProfile",
+        "ConsultationType",
+        "TrainingObservation",
+        "CurrentTrainingConfig",
+    }
     for key, fact in sorted(engine.facts.items()):
         label = type(fact).__name__
-        if label in {
-            "InitialFact",
-            "Recommendation",
-            "ProjectContext",
-            "ComputeConstraints",
-            "OptimizationBudget",
-            "ModelArchitecture",
-            "DatasetProfile",
-        }:
+        if label in skip:
             continue
         print(f"  {label}: {dict(fact)}")
 

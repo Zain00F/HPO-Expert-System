@@ -7,13 +7,21 @@ import hpo_expert  # noqa: F401 — apply collections.Mapping patch before exper
 from experta import KnowledgeEngine
 
 from hpo_expert.facts.reasoning import Recommendation
+from hpo_expert.rules.diagnosis import DiagnosisRules
 from hpo_expert.rules.hpo_methods import HPOMethodRules
 from hpo_expert.rules.optimizers import OptimizerRules
 from hpo_expert.rules.stage_control import StageControlRules
-from hpo_expert.rules.search_space import SearchSpaceRules  
+from hpo_expert.rules.search_space import SearchSpaceRules
 
 
-class HPOExpertEngine(StageControlRules, HPOMethodRules, OptimizerRules, SearchSpaceRules, KnowledgeEngine):
+class HPOExpertEngine(
+    StageControlRules,
+    DiagnosisRules,
+    HPOMethodRules,
+    OptimizerRules,
+    SearchSpaceRules,
+    KnowledgeEngine,
+):
 
     def recommendations_as_dicts(self) -> list[dict]:
         """Serialize recommendations for reporting."""

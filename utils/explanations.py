@@ -30,11 +30,14 @@ def format_report(recommendations: list[Any], title: str = "HPO Expert Report") 
         by_category.setdefault(rec["category"], []).append(rec)
 
     CATEGORY_ORDER = [
-        "hpo_method",          
-        "advanced_strategy(for hpo method)",   
-        "optimizer_family",    
+        "hpo_method",
+        "advanced_strategy(for hpo method)",
+        "optimizer_family",
         "optimizer_specific",
-        "search_space",  
+        "search_space",
+        "diagnosis",
+        "possible_cause",
+        "diagnosis_recommendation",
     ]
 
     sorted_categories = sorted(

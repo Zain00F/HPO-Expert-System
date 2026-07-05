@@ -64,3 +64,25 @@ flowchart TD
 
 - Range suggestion per optimizer
 - Diagnosis branch from `TrainingObservation`
+
+## Post-training diagnosis (v0.2)
+
+Knowledge acquisition: see [KNOWLEDGE_ACQUISITION_DIAGNOSIS.md](KNOWLEDGE_ACQUISITION_DIAGNOSIS.md).
+Thresholds: `utils/heuristic_thresholds.py`.
+
+```mermaid
+flowchart TD
+    Start([TrainingObservation declared]) --> N{nan_detected?}
+    N -->|yes| NAN[Diagnosis: NaN Loss]
+    N -->|no| I{inf_detected?}
+    I -->|yes| INF[Diagnosis: Inf Loss]
+    I -->|no| O{val_loss > train_loss × HT.MAX_HEALTHY_LOSS_RATIO?}
+    O -->|yes| OF[Diagnosis: Overfitting]
+    O -->|no| U{high loss + similar val OR poor similar acc?}
+    U -->|yes| UF[Diagnosis: Underfitting]
+    NAN --> C[PossibleCause rules + context facts]
+    INF --> C
+    OF --> C
+    UF --> C
+    C --> R[Recommendation: diagnosis_recommendation]
+```

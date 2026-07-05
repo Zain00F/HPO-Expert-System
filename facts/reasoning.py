@@ -38,9 +38,17 @@ class OptimizerChoice(Fact):
 
 
 class Diagnosis(Fact):
-    """Identified training issue (expanded in future diagnosis rules)."""
+    """Inferred training issue from observations."""
 
     issue = Field(str, mandatory=True)
+    confidence = Field(str, mandatory=True)
+
+
+class PossibleCause(Fact):
+    """Likely root cause linked to an inferred diagnosis."""
+
+    diagnosis = Field(str, mandatory=True)
+    cause = Field(str, mandatory=True)
     confidence = Field(str, mandatory=True)
 
 
