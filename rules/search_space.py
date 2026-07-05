@@ -7,48 +7,48 @@ from experta import MATCH, NOT, TEST, Rule
 
 from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget, ProjectContext
 from hpo_expert.facts.model import DatasetProfile, ModelArchitecture
-from hpo_expert.facts.reasoning import ReasoningStage, Recommendation ,SearchSpaceChoice
-from hpo_expert.utils.enums import Priority, ReasoningStageId
+from hpo_expert.facts.reasoning import ReasoningStage, Recommendation ,SearchSpaceChoice,OptimizerChoice
+from hpo_expert.utils.enums import Priority, ReasoningStageId ,Optimizer
 from hpo_expert.utils.scoring import confidence_from_score
+_SEQUENTIAL_ARCHITECTURES = {"transformer", "llm", "rnn"}
+_SPATIAL_ARCHITECTURES = {"cnn", "mlp"}
 
 
 class SearchSpaceRules:
     """Mixin: Contains expert rules for partitioning and prioritizing hyperparameter search spaces."""
+
+    
 
     # 1. BRANCH 1: STRICT RESOURCE CHECK (Yes) -> BatchNorm Check
     @Rule(
         ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
         ComputeConstraints(has_gpu=MATCH.has_gpu),
         OptimizationBudget(max_trials=MATCH.trials),
-        ModelArchitecture(uses_batch_norm=True, architecture_type="cnn"),
-        TEST(lambda has_gpu, trials: has_gpu is False or trials <= 20),
+        ModelArchitecture(uses_batch_norm=True, architecture_type=MATCH.arch),
+        TEST(lambda has_gpu, trials, arch: (has_gpu is False or trials <= 20) and arch in _SPATIAL_ARCHITECTURES),
         NOT(SearchSpaceChoice()),
         NOT(Recommendation(category="search_space")),
         salience=85,
     )
-    def space_strict_resource_bn_safe(self):
-        """[BN_Safe Node] Strict resources + BatchNorm inside a CNN structure."""
+    def space_strict_resource_bn_safe(self, arch):
+        """[BN_Safe Node] Strict resources + BatchNorm inside a CNN/MLP structure."""
         reasons = [
             "Strict budget condition met (GPU unavailable OR max_trials <= 20).",
-            "Model architecture uses Batch Normalization within a CNN topology.",
+            f"Architecture '{arch}' uses Batch Normalization.",
             "Freezing batch size at 16 to stabilize internal BatchNorm statistics without memory failure risk.",
-            "Freezing learning rate schedule to 'constant' and dropout to 0 to reduce dimensionality and avoid BatchNorm conflict.",
+            "Freezing learning rate schedule to 'constant' and dropout to 0 to reduce dimensionality and avoid BatchNorm conflict (Karpathy, 2019).",
             "Priority 1: Isolate active search to the Learning Rate (lr).",
-            "Priority 2: Maintain Weight Decay (wd) tuning safely to prevent catastrophic overfitting.",
+            "Priority 2: Weight Decay (wd) — set to a small value (recommended: 1e-4 or lower). "
+            "Batch Normalization provides its own regularization effect, reducing the need for large wd values. "
+            "Large wd with BN can cause underfitting — keep it small but non-zero.",
         ]
 
-        self.declare(
-            SearchSpaceChoice(
-                mode="resource_bn_safe",
-                confidence=confidence_from_score(5),
-            )
-        )
-
+        self.declare(SearchSpaceChoice(mode="resource_bn_safe", confidence=confidence_from_score(5)))
         self.declare(
             Recommendation(
                 category="search_space",
                 recommendation="Resource & BN Constraint Mode",
-                justification="Tight compute parameters with BatchNorm present requires locking batch size and schedule to safe defaults.",
+                justification=f"Tight compute with BatchNorm in '{arch}' requires locking batch size and schedule to safe defaults.",
                 reasons=reasons,
                 priority=Priority.HIGH.value,
                 confidence=confidence_from_score(5),
@@ -59,276 +59,195 @@ class SearchSpaceRules:
         ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
         ComputeConstraints(has_gpu=MATCH.has_gpu),
         OptimizationBudget(max_trials=MATCH.trials),
-        ModelArchitecture(uses_batch_norm=MATCH.bn),
-        TEST(lambda has_gpu, trials, bn: (has_gpu is False or trials <= 20) and bn is False),
+        ModelArchitecture(uses_batch_norm=MATCH.bn, architecture_type=MATCH.arch),
+        TEST(lambda has_gpu, trials, bn, arch: (has_gpu is False or trials <= 20) and (bn is False or arch not in _SPATIAL_ARCHITECTURES)),
         NOT(SearchSpaceChoice()),
         NOT(Recommendation(category="search_space")),
         salience=84,
     )
-    def space_strict_resource_extreme_focus(self):
+    def space_strict_resource_extreme_focus(self, arch):
         """[Safe_Def Node] Strict resources without BatchNorm."""
         reasons = [
             "Strict budget condition met (GPU unavailable OR max_trials <= 20).",
-            "No active Batch Normalization constraints detected.",
+            f"Architecture '{arch}' — No active Batch Normalization constraints detected.",
             "Aggressively reducing search dimensions to avoid sub-optimal convergence.",
             "Freezing: batch size at 8 or 16, weight decay (wd), dropout, and schedule to 'constant'.",
             "Priority 1: Invest 100% of active search updates exclusively on the Learning Rate (lr).",
         ]
 
-        self.declare(
-            SearchSpaceChoice(
-                mode="extreme_focus",
-                confidence=confidence_from_score(5),
-            )
-        )
-
+        self.declare(SearchSpaceChoice(mode="extreme_focus", confidence=confidence_from_score(5)))
         self.declare(
             Recommendation(
                 category="search_space",
                 recommendation="Extreme Focus Mode",
-                justification="Severe hardware or temporal constraints require freezing all dimensions except the core learning rate.",
+                justification=f"Severe constraints on '{arch}' require freezing all dimensions except the core learning rate.",
                 reasons=reasons,
                 priority=Priority.HIGH.value,
                 confidence=confidence_from_score(5),
             )
         )
 
-    # BRANCH 2: SUFFICIENT RESOURCES (No to C1) -> Optimization Goal Routing
     
-    # 2a. Maximize Accuracy Node
+    # BRANCH 2: SUFFICIENT RESOURCES -> Architecture Check
+    # 2a. Transformer/LLM/RNN + Warmup Node
     @Rule(
         ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
         ComputeConstraints(has_gpu=True),
         OptimizationBudget(max_trials=MATCH.trials),
-        ProjectContext(optimization_goal="maximize_accuracy"),
-        TEST(lambda trials: trials > 20),
-        NOT(SearchSpaceChoice()),
-        NOT(Recommendation(category="search_space")),
-        salience=80,
-    )
-    def space_goal_accuracy_fanova(self):
-        """[Goal_Acc Node] High resource + Maximize Accuracy."""
-        reasons = [
-            "Sufficient resources verified (GPU enabled AND max_trials > 20).",
-            "Objective is absolute accuracy maximization.",
-            "fANOVA sensitivity analysis indicates Batch Size shares a 65% joint interaction effect with LR.",
-            "Priority 1: Tune Batch Size via active search.",
-            "Priority 2: Tune Learning Rate (lr) via active search concurrently.",
-            "Priority 3: Tune LR Schedule style (Decay Style).",
-            "Freezing: Dropout order and Weight Decay (wd) at stable baseline configurations.",
-        ]
-
-        self.declare(
-            SearchSpaceChoice(
-                mode="accuracy_fanova",
-                confidence=confidence_from_score(5),
-            )
-        )
-
-        self.declare(
-            Recommendation(
-                category="search_space",
-                recommendation="Accuracy Mode (fANOVA-Driven)",
-                justification="Maximizing performance requires co-tuning interaction parameters (batch, lr) followed by the decay schedule.",
-                reasons=reasons,
-                priority=Priority.HIGH.value,
-                confidence=confidence_from_score(5),
-            )
-        )
-
-    # 2b. Minimize Training Time Node
-    @Rule(
-        ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
-        ComputeConstraints(has_gpu=True),
-        OptimizationBudget(max_trials=MATCH.trials),
-        ProjectContext(optimization_goal="minimize_training_time"),
-        TEST(lambda trials: trials > 20),
-        NOT(SearchSpaceChoice()),
-        NOT(Recommendation(category="search_space")),
-        salience=79,
-    )
-    def space_goal_time_fanova(self):
-        """[Goal_Time Node] High resource + Minimize Training Time."""
-        reasons = [
-            "Sufficient resources verified (GPU enabled AND max_trials > 20).",
-            "Objective is minimizing wall-clock runtime / maximizing training speed.",
-            "fANOVA validates that the Learning Rate holds a 54% direct standalone effect on convergence speed.",
-            "Priority 1: Isolate active search strictly to the Learning Rate (lr).",
-            "Freezing: Batch size to maximum available hardware limits, weight decay, dropout, and schedule to 'fixed_linear'.",
-        ]
-
-        self.declare(
-            SearchSpaceChoice(
-                mode="speed_fanova",
-                confidence=confidence_from_score(5),
-            )
-        )
-
-        self.declare(
-            Recommendation(
-                category="search_space",
-                recommendation="Speed Mode (fANOVA-Driven)",
-                justification="Tuning for speed requires isolating search to LR while pinning batch size high to exploit parallelism.",
-                reasons=reasons,
-                priority=Priority.HIGH.value,
-                confidence=confidence_from_score(5),
-            )
-        )
-
-    # BRANCH 3: BALANCED GOAL Routing -> Architecture Check
-    
-    # 3a. Transformer + Warmup Node
-    @Rule(
-        ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
-        ComputeConstraints(has_gpu=True),
-        OptimizationBudget(max_trials=MATCH.trials),
-        ProjectContext(optimization_goal="balanced"),
-        ModelArchitecture(architecture_type="transformer"),
-        TEST(lambda trials: trials > 20),
+        ModelArchitecture(architecture_type=MATCH.arch),
+        TEST(lambda trials, arch: trials > 20 and arch in _SEQUENTIAL_ARCHITECTURES),
         NOT(SearchSpaceChoice()),
         NOT(Recommendation(category="search_space")),
         salience=75,
     )
-    def space_balanced_transformer_warmup(self):
-        """[Arch_Trans Node] High resource + Balanced + Transformer."""
+    def space_sequential_warmup(self, arch):
+        """[Arch_Trans Node] High resource + Transformer/LLM/RNN."""
         reasons = [
-            "Sufficient resources available with a balanced optimization intent.",
-            "Architecture is attention-based (Transformer).",
+            "Sufficient resources verified (GPU enabled AND max_trials > 20).",
+            f"Architecture '{arch}' is sequential/attention-based.",
             "Priority 1: Active Search on Learning Rate (lr).",
-            "Priority 2: Active Search on Weight Decay (wd) due to high transformer sensitivity to decoupled regularization.",
-            "Freezing: Batch size and dropout order at verified default states.",
-            "Mandatory: An LR Warmup period must be explicitly injected during trials to avoid early gradient explosion.",
+            "Priority 2: Active Search on Weight Decay (wd) — AdamW decoupled regularization is a first-class hyperparameter (Loshchilov & Hutter, 2019).",
+            "Freezing: Batch size and dropout at verified default states.",
+            "Mandatory: LR Warmup period must be injected during trials to avoid early gradient explosion (Vaswani et al., 2017).",
         ]
 
-        self.declare(
-            SearchSpaceChoice(
-                mode="transformer_balanced",
-                confidence=confidence_from_score(5),
-            )
-        )
-
+        self.declare(SearchSpaceChoice(mode="transformer_balanced", confidence=confidence_from_score(5)))
         self.declare(
             Recommendation(
                 category="search_space",
                 recommendation="Adaptive Context Focus",
-                justification="Transformers under balanced conditions require co-tuning lr and regularizers with mandatory learning rate warmup.",
+                justification=f"Architecture '{arch}' requires co-tuning lr and wd with mandatory learning rate warmup.",
                 reasons=reasons,
                 priority=Priority.HIGH.value,
                 confidence=confidence_from_score(5),
             )
         )
 
-    # 3b. CNN + High Overfitting Risk Node (Large model + Small Dataset)
+    # 2b. CNN/MLP + High Overfitting Risk Node
     @Rule(
         ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
         ComputeConstraints(has_gpu=True),
         OptimizationBudget(max_trials=MATCH.trials),
-        ProjectContext(optimization_goal="balanced"),
-        ModelArchitecture(architecture_type="cnn", model_scale="large"),
-        DatasetProfile(dataset_size="small"),  
-        TEST(lambda trials: trials > 20),
+        ModelArchitecture(architecture_type=MATCH.arch, model_scale="large"),
+        DatasetProfile(data_type=MATCH.dtype, sample_count=MATCH.count),
+        TEST(lambda dtype, count: 
+            (dtype == "image" and count < 2000) or 
+            (dtype == "text" and count < 5000) or
+            (dtype == "tabular" and count < 1000)
+        ),
+        TEST(lambda trials, arch: trials > 20 and arch in _SPATIAL_ARCHITECTURES),
         NOT(SearchSpaceChoice()),
         NOT(Recommendation(category="search_space")),
         salience=72,
     )
-    def space_balanced_cnn_high_overfitting(self):
-        """[CNN_Reg Node] High resource + Balanced + CNN + High Risk (Large model + Small Dataset)."""
+    def space_spatial_high_overfitting(self, arch):
+        """[CNN_Reg Node] High resource + CNN/MLP + High Overfitting Risk."""
         reasons = [
-            "Sufficient resources with a balanced objective on a large-scale CNN vision architecture.",
-            "High Overfitting Risk detected: Large parameter capacity operating on a small dataset profile.",
+            "Sufficient resources verified (GPU enabled AND max_trials > 20).",
+            f"High Overfitting Risk: Large '{arch}' capacity operating on a small dataset profile.",
             "Priority 1: Active Search on Learning Rate (lr).",
-            "Priority 2: Active Search on Batch Size to find regularizing noise surfaces.",
-            "Priority 3: Activate active search for both Weight Decay (wd) and Dropout to structurally suppress overfitting.",
+            f"Priority 2: Active Search on Dropout — directly suppresses overfitting in '{arch}' (Taram et al., 2024).",
+            "Priority 3: Active Search on Batch Size for regularizing noise control.",
+            "Priority 4: Weight Decay (wd) — lower priority for non-AdamW optimizers.",
         ]
-        
-        self.declare(
-            SearchSpaceChoice(
-                mode="cnn_high_risk",
-                confidence=confidence_from_score(5),
-            )
-        )
 
+        self.declare(SearchSpaceChoice(mode="cnn_high_risk", confidence=confidence_from_score(5)))
         self.declare(
             Recommendation(
                 category="search_space",
                 recommendation="Spatial Regularization Mode",
-                justification="High overfitting vulnerability due to small dataset size requires tuning both optimization and regularizer limits.",
+                justification=f"High overfitting risk in '{arch}' requires prioritizing dropout and batch noise before weight decay.",
                 reasons=reasons,
                 priority=Priority.HIGH.value,
                 confidence=confidence_from_score(5),
             )
         )
 
-    # 3c. CNN + Low Overfitting Risk Node (Standard Falling back)
+    # 2c. CNN/MLP + Standard Node
     @Rule(
         ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
         ComputeConstraints(has_gpu=True),
         OptimizationBudget(max_trials=MATCH.trials),
-        ProjectContext(optimization_goal="balanced"),
-        ModelArchitecture(architecture_type="cnn"),  
-        TEST(lambda trials: trials > 20),
+        ModelArchitecture(architecture_type=MATCH.arch),
+        TEST(lambda trials, arch: trials > 20 and arch in _SPATIAL_ARCHITECTURES),
         NOT(SearchSpaceChoice()),
         NOT(Recommendation(category="search_space")),
         salience=70,
     )
-    def space_balanced_cnn_standard(self):
-        """[CNN_Standard Node] High resource + Balanced + CNN + Normal Risk."""
+    def space_spatial_standard(self, arch):
+        """[CNN_Standard Node] High resource + CNN/MLP + Normal Risk."""
         reasons = [
-            "Sufficient resources with a balanced objective on a standard CNN vision model.",
-            "Low/Normal Overfitting Risk profile: dataset capacity matches model footprint.",
+            "Sufficient resources verified (GPU enabled AND max_trials > 20).",
+            f"Standard '{arch}' profile: dataset capacity matches model footprint.",
             "Priority 1: Active Search on Learning Rate (lr).",
-            "Priority 2: Active Search on Batch Size.",
-            "Freezing: Weight decay (wd) and dropout at standard safe defaults to preserve sample efficiency.",
+            f"Priority 2: Active Search on Dropout — higher sensitivity than batch size in '{arch}' (Taram et al., 2024).",
+            "Priority 3: Active Search on Batch Size.",
+            "Freezing: Weight Decay (wd) at safe defaults — low impact for non-AdamW optimizers.",
         ]
-        
-        self.declare(
-            SearchSpaceChoice(
-                mode="cnn_standard",
-                confidence=confidence_from_score(4),
-            )
-        )
 
+        self.declare(SearchSpaceChoice(mode="cnn_standard", confidence=confidence_from_score(4)))
         self.declare(
             Recommendation(
                 category="search_space",
                 recommendation="Spatial Standard Mode",
-                justification="Standard computer vision setups optimize performance by focusing trials on lr and batch size while pinning constraints.",
+                justification=f"Standard '{arch}' setups prioritize lr, dropout, then batch size based on fANOVA sensitivity ordering.",
                 reasons=reasons,
                 priority=Priority.MEDIUM.value,
                 confidence=confidence_from_score(4),
             )
         )
 
-
-    # 4. FALLBACK CATCH-ALL: SAFE DEFAULT MODE
+    # Fallback
     @Rule(
         ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
-        NOT(SearchSpaceChoice()),  
-        salience=50,               
+        NOT(SearchSpaceChoice()),
+        salience=50,
     )
     def space_fallback_safe_default(self):
-        """[Fallback Node] General safe default when no specific resource/architecture branch matches."""
+        """[Fallback Node] Safe default when no specific branch matches."""
         reasons = [
-            "No specific resource configuration or architecture patterns were explicitly matched.",
-            "Falling back to a robust, general-purpose machine learning search strategy.",
-            "Priority 1: Isolate active search primarily to the Learning Rate (lr) as the highest impact parameter.",
-            "Priority 2: Include Batch Size in active search at standard boundaries to handle generic convergence.",
-            "Freezing: Keeping weight decay, dropout, and schedule at safe baseline defaults to avoid over-parameterization.",
+            "No specific architecture or resource pattern matched.",
+            "Falling back to general-purpose search strategy.",
+            "Priority 1: Active Search on Learning Rate (lr) — highest impact parameter across all architectures.",
+            "Priority 2: Active Search on Batch Size — second most impactful parameter in general deep learning settings.",
+            "Freezing: Weight decay, dropout, and schedule at safe baseline defaults.",
         ]
-        
-        self.declare(
-            SearchSpaceChoice(
-                mode="safe_default",
-                confidence=confidence_from_score(3),  
-            )
-        )
 
+        self.declare(SearchSpaceChoice(mode="safe_default", confidence=confidence_from_score(3)))
         self.declare(
             Recommendation(
                 category="search_space",
                 recommendation="Safe Default Space Mode",
-                justification="A standard general-purpose configuration is applied to guarantee system progression when strict context rules are unmapped.",
+                justification="General-purpose configuration applied when no strict context rules match.",
                 reasons=reasons,
+                priority=Priority.MEDIUM.value,
+                confidence=confidence_from_score(3),
+            )
+        )
+
+    # AdamW Upgrade
+    @Rule(
+        ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
+        SearchSpaceChoice(mode=MATCH.mode),
+        OptimizerChoice(optimizer=Optimizer.ADAMW.value),
+        TEST(lambda mode: mode in {
+            "cnn_standard",
+            "cnn_high_risk",
+            "safe_default",
+        }),
+        salience=60,
+    )
+    def upgrade_wd_for_adamw(self, mode):
+        self.declare(
+            Recommendation(
+                category="search_space_wd_note",
+                recommendation="AdamW Weight Decay Upgrade",
+                justification="AdamW decoupled wd is meaningful — consider adding it to active search.",
+                reasons=[
+                    f"Current mode '{mode}' has wd frozen or deprioritized.",
+                    "OptimizerChoice is AdamW — decoupled weight decay is a first-class hyperparameter.",
+                    "Recommend promoting wd to active search if trial budget allows.",
+                ],
                 priority=Priority.MEDIUM.value,
                 confidence=confidence_from_score(3),
             )

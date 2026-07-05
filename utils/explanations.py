@@ -34,7 +34,8 @@ def format_report(recommendations: list[Any], title: str = "HPO Expert Report") 
         "advanced_strategy(for hpo method)",   
         "optimizer_family",    
         "optimizer_specific",
-        "search_space",  
+        "search_space",
+        "range_suggestion",  
     ]
 
     sorted_categories = sorted(

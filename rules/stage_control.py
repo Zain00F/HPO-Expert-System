@@ -12,6 +12,7 @@ from hpo_expert.facts.reasoning import (
     OptimizerChoice,
     OptimizerFamilyChoice,
     ReasoningStage,
+    SearchSpaceChoice
 )
 from hpo_expert.utils.enums import ReasoningStageId
 
@@ -61,6 +62,17 @@ class StageControlRules:
         salience=90,
     )
     def advance_to_search_space(self, stage):
-        """عند اختيار المحسن بنجاح، يتم سحب المرحلة الحالية والانتقال فوراً لترتيب فضاء البحث"""
         self.retract(stage)
         self.declare(ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value))    
+
+
+    @Rule(
+        AS.stage << ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
+        SearchSpaceChoice(),
+        NOT(ReasoningStage(current=ReasoningStageId.RANGES.value)),
+        salience=85,
+    )
+    def advance_to_ranges(self, stage):
+        """Transition from Search Space stage to Range Suggestion stage."""
+        self.retract(stage)
+        self.declare(ReasoningStage(current=ReasoningStageId.RANGES.value))   

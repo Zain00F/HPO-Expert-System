@@ -11,9 +11,10 @@ from hpo_expert.rules.hpo_methods import HPOMethodRules
 from hpo_expert.rules.optimizers import OptimizerRules
 from hpo_expert.rules.stage_control import StageControlRules
 from hpo_expert.rules.search_space import SearchSpaceRules  
+from hpo_expert.rules.ranges import RangeRules
 
 
-class HPOExpertEngine(StageControlRules, HPOMethodRules, OptimizerRules, SearchSpaceRules, KnowledgeEngine):
+class HPOExpertEngine(StageControlRules, HPOMethodRules, OptimizerRules, SearchSpaceRules,RangeRules, KnowledgeEngine):
 
     def recommendations_as_dicts(self) -> list[dict]:
         """Serialize recommendations for reporting."""
