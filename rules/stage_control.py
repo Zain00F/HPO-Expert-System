@@ -83,7 +83,6 @@ class StageControlRules:
     def advance_to_diagnosis_recommend(self, stage):
         self.retract(stage)
         self.declare(ReasoningStage(current=ReasoningStageId.DIAGNOSIS_RECOMMEND.value))
-        self.declare(ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value))    
 
 
     @Rule(

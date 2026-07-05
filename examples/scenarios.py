@@ -12,12 +12,10 @@ def scenario_small_fast() -> list:
             optimization_priority="medium",
         ),
         ComputeConstraints(
-            dataset_size="small",
-            compute_budget="low",
             has_gpu=False,
             time_budget_hours=8.0,
             search_space_dimensions=3,
-            trial_cost="low",
+            trial_time_minutes=3.0,
         ),
         OptimizationBudget(max_trials=20, max_total_runtime_hours=8.0),
         ModelArchitecture(
@@ -43,15 +41,13 @@ def scenario_expensive_deep() -> list:
             optimization_priority="high",
         ),
         ComputeConstraints(
-            dataset_size="large",
-            compute_budget="high",
             has_gpu=True,
             gpu_memory_gb=24.0,
-            time_budget_hours=36.0,
+            time_budget_hours=48.0,
             search_space_dimensions=8,
-            trial_cost="high",
+            trial_time_minutes=45.0,
         ),
-        OptimizationBudget(max_trials=50, max_total_runtime_hours=36.0),
+        OptimizationBudget(max_trials=50, max_total_runtime_hours=48.0),
         ModelArchitecture(
             architecture_type="transformer",
             num_layers=12,
@@ -76,12 +72,10 @@ def scenario_tight_budget() -> list:
             optimization_priority="high",
         ),
         ComputeConstraints(
-            dataset_size="medium",
-            compute_budget="medium",
             has_gpu=True,
             time_budget_hours=12.0,
             search_space_dimensions=5,
-            trial_cost="high",
+            trial_time_minutes=45.0,
         ),
         OptimizationBudget(max_trials=25, max_total_runtime_hours=12.0),
         ModelArchitecture(
@@ -96,7 +90,7 @@ def scenario_tight_budget() -> list:
             sample_count=40_000,
             dataset_noise="low",
             class_balance="balanced",
-            num_classes=10,
+            classification_categories=10,
         ),
     ]
 

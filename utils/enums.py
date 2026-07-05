@@ -91,6 +91,12 @@ class Confidence(str, Enum):
     HIGH = "high"
 
 
+class TrialCostLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 class DatasetSize(str, Enum):
     SMALL = "small"  # < 10k samples
     MEDIUM = "medium"

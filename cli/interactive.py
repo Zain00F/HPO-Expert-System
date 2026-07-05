@@ -85,12 +85,10 @@ def gather_pre_training_facts() -> list:
     deploy = _ask("Deployment type (research / production / educational)", "educational")
     priority = _ask("Optimization priority (low / medium / high)", "medium")
 
-    dataset_size = _ask("Dataset size (small / medium / large)", "medium")
-    compute_budget = _ask("Compute budget (low / medium / high)", "medium")
     has_gpu = _ask_bool("GPU available?", True)
-    time_hours = _ask_float("Time budget (hours)", 24.0)
+    time_hours = _ask_float("Time budget for HPO (hours)", 24.0)
     dimensions = _ask_int("Number of hyperparameters to tune", 5)
-    trial_cost = _ask("Relative trial cost (low / medium / high)", "medium")
+    trial_time = _ask_float("Average training time per trial (minutes)", 15.0)
     max_trials = _ask_int("Maximum trials", 30)
 
     arch = _ask("Architecture (mlp / cnn / rnn / transformer / llm)", "cnn")
@@ -101,7 +99,9 @@ def gather_pre_training_facts() -> list:
     attention = _ask_bool("Uses attention blocks?", False)
 
     data_type = _ask("Data type (image / text / tabular / audio)", "image")
-    samples = _ask_int("Training sample count", 50_000)
+    samples = _ask_int("Total training sample count", 50_000)
+    classes_raw = input("Number of classes for classification (leave blank if N/A): ").strip()
+    classification_categories = int(classes_raw) if classes_raw else None
     noise = _ask("Dataset noise (low / medium / high)", "low")
     balance = _ask("Class balance (balanced / imbalanced)", "balanced")
 
@@ -113,12 +113,10 @@ def gather_pre_training_facts() -> list:
             optimization_priority=priority,
         ),
         ComputeConstraints(
-            dataset_size=dataset_size,
-            compute_budget=compute_budget,
             has_gpu=has_gpu,
             time_budget_hours=time_hours,
             search_space_dimensions=dimensions,
-            trial_cost=trial_cost,
+            trial_time_minutes=trial_time,
         ),
         OptimizationBudget(
             max_trials=max_trials,
@@ -137,6 +135,7 @@ def gather_pre_training_facts() -> list:
             sample_count=samples,
             dataset_noise=noise,
             class_balance=balance,
+            classification_categories=classification_categories,
         ),
     ]
 

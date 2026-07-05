@@ -1,5 +1,6 @@
 from experta import Fact, Field
 
+
 class ProjectContext(Fact):
     optimization_goal = Field(str, mandatory=True)
     deployment_type = Field(str, mandatory=True)
@@ -7,14 +8,19 @@ class ProjectContext(Fact):
 
 
 class ComputeConstraints(Fact):
-    dataset_size = Field(str, mandatory=True)
-    compute_budget = Field(str, mandatory=True)
+    """
+    Objective compute and search observations supplied by the client.
+
+    Subjective classifications (dataset size, trial cost, compute budget)
+    are derived by rules — see facts/derived.py and rules/derived_context.py.
+    """
+
     has_gpu = Field(bool, mandatory=True, default=True)
     gpu_memory_gb = Field(float, default=8.0)
     ram_gb = Field(float, default=16.0)
     time_budget_hours = Field(float, mandatory=True)
     search_space_dimensions = Field(int, mandatory=True)
-    trial_cost = Field(str, mandatory=True)
+    trial_time_minutes = Field(float, mandatory=True)
 
 
 class OptimizationBudget(Fact):

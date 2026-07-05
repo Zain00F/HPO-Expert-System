@@ -1,40 +1,38 @@
 from experta import MATCH, NOT, TEST, Rule
 
 from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget, ProjectContext
+from hpo_expert.facts.derived import ComputeBudget, TrialCost
 from hpo_expert.facts.reasoning import (
     HPOMethodChoice,
     ReasoningStage,
     Recommendation,
 )
 from hpo_expert.utils.enums import (
+    ComputeBudget as ComputeBudgetLevel,
     HPOMethod,
     Priority,
     ReasoningStageId,
+    TrialCostLevel,
 )
 from hpo_expert.utils.scoring import confidence_from_score
 
 
 class HPOMethodRules:
-    # ---------------------------------------------------------
-    # GRID SEARCH
-    # ---------------------------------------------------------
-
     @Rule(
         ReasoningStage(current=ReasoningStageId.HPO_METHOD.value),
         ComputeConstraints(
             search_space_dimensions=MATCH.d,
-            trial_cost=MATCH.cost,
             time_budget_hours=MATCH.hours,
         ),
-        TEST(lambda d, cost, hours: d <= 4 and cost == "low" and hours >= 2),
+        TrialCost(level=TrialCostLevel.LOW.value),
+        TEST(lambda d, hours: d <= 4 and hours >= 2),
         NOT(HPOMethodChoice()),
         salience=85,
     )
-    def method_grid_search(self, d, cost, hours):
-
+    def method_grid_search(self, d, hours):
         reasons = [
             "Search space has few dimensions (<=4)",
-            "Each trial is relatively cheap",
+            "Each trial is relatively cheap (derived from short average training time)",
             "Exhaustive grid is feasible within your time budget",
         ]
 
@@ -59,27 +57,27 @@ class HPOMethodRules:
             )
         )
 
-    # ---------------------------------------------------------
-    # BAYESIAN OPTIMIZATION
-    # ---------------------------------------------------------
-
     @Rule(
         ReasoningStage(current=ReasoningStageId.HPO_METHOD.value),
         ComputeConstraints(
             search_space_dimensions=MATCH.d,
-            trial_cost=MATCH.cost,
-            compute_budget=MATCH.budget,
             time_budget_hours=MATCH.h,
         ),
+        TrialCost(level=MATCH.cost),
+        ComputeBudget(level=MATCH.budget),
         TEST(
-            lambda d, cost, budget:
-            d >= 5 and (cost == "high" or budget == "high")
+            lambda d, cost, budget: (
+                d >= 5
+                and (
+                    cost == TrialCostLevel.HIGH.value
+                    or budget == ComputeBudgetLevel.HIGH.value
+                )
+            )
         ),
         NOT(HPOMethodChoice()),
         salience=84,
     )
     def method_bayesian(self, d, cost, budget, h):
-
         reasons = [
             f"Search space is large ({d} dimensions) "
             f"or trials are expensive ({cost})",
@@ -110,20 +108,15 @@ class HPOMethodRules:
             )
         )
 
-    # ---------------------------------------------------------
-    # HYPERBAND
-    # ---------------------------------------------------------
-
     @Rule(
         ReasoningStage(current=ReasoningStageId.HPO_METHOD.value),
-        ComputeConstraints(trial_cost="high"),
+        TrialCost(level=TrialCostLevel.HIGH.value),
         OptimizationBudget(max_trials=MATCH.trials),
         TEST(lambda trials: trials <= 40),
         NOT(HPOMethodChoice()),
         salience=86,
     )
     def method_hyperband_trial_cost(self, trials):
-
         reasons = [
             "Training runs are costly relative to your budget",
             "Hyperband allocates more trials to promising "
@@ -154,16 +147,13 @@ class HPOMethodRules:
 
     @Rule(
         ReasoningStage(current=ReasoningStageId.HPO_METHOD.value),
-        ComputeConstraints(
-            trial_cost="high",
-            time_budget_hours=MATCH.h,
-        ),
+        TrialCost(level=TrialCostLevel.HIGH.value),
+        ComputeConstraints(time_budget_hours=MATCH.h),
         TEST(lambda h: h < 48),
         NOT(HPOMethodChoice()),
         salience=82,
     )
     def method_hyperband_time(self, h):
-
         reasons = [
             "Training runs are costly relative to your budget",
             "Hyperband allocates more trials to promising "
@@ -192,17 +182,12 @@ class HPOMethodRules:
             )
         )
 
-    # ---------------------------------------------------------
-    # RANDOM SEARCH (DEFAULT)
-    # ---------------------------------------------------------
-
     @Rule(
         ReasoningStage(current=ReasoningStageId.HPO_METHOD.value),
         NOT(HPOMethodChoice()),
         salience=50,
     )
     def method_random_search(self):
-
         reasons = [
             "Moderate constraints — random search explores broadly "
             "with simple implementation",
@@ -232,22 +217,23 @@ class HPOMethodRules:
                 confidence=confidence_from_score(4),
             )
         )
-        
 
-    #advanced_strategy: Two-Stage Hybrid Tuning
     @Rule(
-        ProjectContext(optimization_goal="maximize_accuracy"), 
-        ComputeConstraints(compute_budget="high"),             
-        HPOMethodChoice(method=MATCH.selected_method),         
-        TEST(lambda selected_method: selected_method in ["bayesian_optimization", "random_search"]),
-        salience=20 
+        ProjectContext(optimization_goal="maximize_accuracy"),
+        ComputeBudget(level=ComputeBudgetLevel.HIGH.value),
+        HPOMethodChoice(method=MATCH.selected_method),
+        TEST(
+            lambda selected_method: selected_method
+            in ["bayesian_optimization", "random_search"]
+        ),
+        salience=20,
     )
     def recommend_hybrid_refinement(self, selected_method):
         reasons = [
-            f"Your budget is high, and your goal is absolute accuracy.",
+            "Derived compute budget is high — planned search fits comfortably within available time.",
             f"After {selected_method} locates the optimal region, a narrow local Grid Search eliminates stochastic noise.",
         ]
-            
+
         self.declare(
             Recommendation(
                 category="advanced_strategy(for hpo method)",

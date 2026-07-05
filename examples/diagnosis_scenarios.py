@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from hpo_expert.facts.consultation import ConsultationType
 from hpo_expert.facts.context import ComputeConstraints
-from hpo_expert.facts.model import ModelArchitecture
+from hpo_expert.facts.model import DatasetProfile, ModelArchitecture
 from hpo_expert.facts.training import CurrentTrainingConfig, TrainingObservation
 from hpo_expert.utils.enums import ConsultationTypeId
 
@@ -24,13 +22,18 @@ def scenario_overfitting_gap() -> list:
             parameter_count=2_000_000,
             model_scale="large",
         ),
+        DatasetProfile(
+            data_type="image",
+            sample_count=800,
+            dataset_noise="low",
+            class_balance="balanced",
+            classification_categories=10,
+        ),
         ComputeConstraints(
-            dataset_size="small",
-            compute_budget="medium",
             has_gpu=True,
             time_budget_hours=24.0,
             search_space_dimensions=5,
-            trial_cost="medium",
+            trial_time_minutes=20.0,
         ),
     ]
 

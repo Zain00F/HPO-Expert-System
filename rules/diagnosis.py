@@ -2,7 +2,7 @@
 from experta import MATCH, NOT, TEST, Rule
 
 from hpo_expert.facts.consultation import ConsultationType
-from hpo_expert.facts.context import ComputeConstraints
+from hpo_expert.facts.derived import DatasetSize
 from hpo_expert.facts.model import ModelArchitecture
 from hpo_expert.facts.reasoning import Diagnosis, PossibleCause, ReasoningStage, Recommendation
 from hpo_expert.facts.training import CurrentTrainingConfig, TrainingObservation
@@ -281,7 +281,7 @@ class DiagnosisRules:
     @Rule(
         ReasoningStage(current=ReasoningStageId.DIAGNOSIS_CAUSE.value),
         Diagnosis(issue=DiagnosisIssue.OVERFITTING.value),
-        ComputeConstraints(dataset_size="small"),
+        DatasetSize(size="small"),
         NOT(PossibleCause(cause=DiagnosisCause.INSUFFICIENT_DATA.value)),
         salience=78,
     )

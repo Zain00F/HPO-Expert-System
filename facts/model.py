@@ -15,3 +15,4 @@ class DatasetProfile(Fact):
     dataset_noise = Field(str, mandatory=True)
     class_balance = Field(str, mandatory=True)
     num_classes = Field(int, default=None)
+    classification_categories = Field(int, default=None)
