@@ -78,3 +78,17 @@ class SearchSpaceChoice(Fact):
     """
     mode = Field(str, mandatory=True)
     confidence = Field(str, mandatory=True)
+
+
+class RangeChoice(Fact):
+    """
+    Stage 4 — hyperparameter range choices and stage completion tracking.
+    
+    parameter: all | optimizer_bound | batch_size | dropout
+    strategy: frozen_bn_safe | frozen_extreme_focus | adamw_sequential | adamw_spatial | adam_standard | sgd_momentum | high_performance | resource_constrained | high_regularization | standard_regularization
+    status: active | complete
+    """
+    parameter = Field(str, default="")
+    strategy = Field(str, default="")
+    confidence = Field(str, default="medium")
+    status = Field(str, default="active")    

@@ -23,6 +23,7 @@ class HPOExpertEngine(
     KnowledgeEngine,
 ):
 
+
     def recommendations_as_dicts(self) -> list[dict]:
         """Serialize recommendations for reporting."""
         out = []

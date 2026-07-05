@@ -38,6 +38,7 @@ def format_report(recommendations: list[Any], title: str = "HPO Expert Report") 
         "diagnosis",
         "possible_cause",
         "diagnosis_recommendation",
+        "range_suggestion",  
     ]
 
     sorted_categories = sorted(

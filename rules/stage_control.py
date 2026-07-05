@@ -14,6 +14,7 @@ from hpo_expert.facts.reasoning import (
     OptimizerFamilyChoice,
     PossibleCause,
     ReasoningStage,
+    SearchSpaceChoice
 )
 from hpo_expert.utils.enums import ConsultationTypeId, ReasoningStageId
 
@@ -91,3 +92,16 @@ class StageControlRules:
     def advance_to_diagnosis_recommend(self, stage):
         self.retract(stage)
         self.declare(ReasoningStage(current=ReasoningStageId.DIAGNOSIS_RECOMMEND.value))
+        self.declare(ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value))    
+
+
+    @Rule(
+        AS.stage << ReasoningStage(current=ReasoningStageId.SEARCH_SPACE.value),
+        SearchSpaceChoice(),
+        NOT(ReasoningStage(current=ReasoningStageId.RANGES.value)),
+        salience=85,
+    )
+    def advance_to_ranges(self, stage):
+        """Transition from Search Space stage to Range Suggestion stage."""
+        self.retract(stage)
+        self.declare(ReasoningStage(current=ReasoningStageId.RANGES.value))   

@@ -18,8 +18,11 @@ if str(_ROOT) not in sys.path:
 import hpo_expert  # noqa: F401
 
 from hpo_expert.engines.hpo_engine import HPOExpertEngine, run_consultation
+from hpo_expert.facts.consultation import ConsultationType
 from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget, ProjectContext
 from hpo_expert.facts.model import DatasetProfile, ModelArchitecture
+from hpo_expert.facts.training import TrainingObservation
+from hpo_expert.utils.enums import ConsultationTypeId
 from hpo_expert.utils.explanations import format_report
 
 
@@ -51,9 +54,39 @@ def _ask_bool(prompt: str, default: bool = True) -> bool:
     return raw in {"y", "yes", "1", "true"}
 
 
-def gather_facts() -> list:
+def _ask_optional_float(prompt: str) -> float | None:
+    raw = input(f"{prompt} (leave blank to skip): ").strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _ask_optional_int(prompt: str) -> int | None:
+    raw = input(f"{prompt} (leave blank to skip): ").strip()
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+def _select_consultation_type() -> str:
     print("\n=== HPO Expert Consultant ===\n")
-    print("Answer a few questions. The system will narrow choices in stages.\n")
+    print("Select Consultation Type\n")
+    print("  1. Pre-Training Consultation")
+    print("  2. Post-Training Diagnosis\n")
+    choice = _ask("Enter 1 or 2", "1")
+    if choice == "2":
+        return ConsultationTypeId.POST_TRAINING.value
+    return ConsultationTypeId.PRE_TRAINING.value
+
+
+def gather_pre_training_facts() -> list:
+    print("\nAnswer a few questions. The system will narrow choices in stages.\n")
 
     goal = _ask("Optimization goal (maximize_accuracy / minimize_training_time / balanced)", "balanced")
     deploy = _ask("Deployment type (research / production / educational)", "educational")
@@ -80,6 +113,7 @@ def gather_facts() -> list:
     balance = _ask("Class balance (balanced / imbalanced)", "balanced")
 
     return [
+        ConsultationType(mode=ConsultationTypeId.PRE_TRAINING.value),
         ProjectContext(
             optimization_goal=goal,
             deployment_type=deploy,
@@ -114,10 +148,51 @@ def gather_facts() -> list:
     ]
 
 
+def gather_diagnosis_facts() -> list:
+    print("\nProvide training observations. The system will infer the diagnosis.\n")
+    print("(Accuracies are percentages, e.g. 85 for 85%.)\n")
+    print("Context facts (model size, learning rate, etc.) are used only for")
+    print("cause analysis — declare them separately if running programmatically.\n")
+
+    nan_detected = _ask_bool("NaN loss encountered?", False)
+    inf_detected = _ask_bool("Inf loss encountered?", False)
+
+    training_loss = _ask_optional_float("Training loss")
+    validation_loss = _ask_optional_float("Validation loss")
+    training_accuracy = _ask_optional_float("Training accuracy (0–100%)")
+    validation_accuracy = _ask_optional_float("Validation accuracy (0–100%)")
+    epochs_completed = _ask_optional_int("Epochs completed")
+
+    return [
+        ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
+        TrainingObservation(
+            training_loss=training_loss,
+            validation_loss=validation_loss,
+            training_accuracy=training_accuracy,
+            validation_accuracy=validation_accuracy,
+            nan_detected=nan_detected,
+            inf_detected=inf_detected,
+            epochs_completed=epochs_completed,
+        ),
+    ]
+
+
+def gather_facts() -> list:
+    mode = _select_consultation_type()
+    if mode == ConsultationTypeId.POST_TRAINING.value:
+        return gather_diagnosis_facts()
+    return gather_pre_training_facts()
+
+
 def main() -> None:
     facts = gather_facts()
     engine = run_consultation(HPOExpertEngine(), facts)
-    print("\n" + format_report(engine.recommendations_as_dicts()))
+    title = (
+        "Post-Training Diagnosis Report"
+        if any(type(f).__name__ == "ConsultationType" and f["mode"] == "post_training" for f in facts)
+        else "HPO Expert Report"
+    )
+    print("\n" + format_report(engine.recommendations_as_dicts(), title=title))
     print("\n(Derived audit facts available via engine.facts in programmatic use.)\n")
 
 
