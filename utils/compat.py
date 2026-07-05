@@ -1,6 +1,3 @@
-"""Python 3.10+ compatibility shim for experta (collections.Mapping)."""
-
-
 def patch_experta_collections() -> None:
     import collections
 

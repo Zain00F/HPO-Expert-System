@@ -1,5 +1,3 @@
-"""Canonical values for facts, rules, and CLI — single source of truth."""
-
 from enum import Enum
 
 

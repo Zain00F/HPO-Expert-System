@@ -1,9 +1,3 @@
-"""
-Sample evidence bundles for testing and academic evaluation.
-
-Each function returns facts ready for engine.declare().
-"""
-
 from __future__ import annotations
 
 from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget, ProjectContext
@@ -11,7 +5,6 @@ from hpo_expert.facts.model import DatasetProfile, ModelArchitecture
 
 
 def scenario_small_fast() -> list:
-    """Small search space, cheap trials — expect Grid Search + Adam."""
     return [
         ProjectContext(
             optimization_goal="balanced",
@@ -43,7 +36,6 @@ def scenario_small_fast() -> list:
 
 
 def scenario_expensive_deep() -> list:
-    """Large search, costly trials, limited time — expect Bayesian + AdamW."""
     return [
         ProjectContext(
             optimization_goal="maximize_accuracy",
@@ -77,7 +69,6 @@ def scenario_expensive_deep() -> list:
 
 
 def scenario_tight_budget() -> list:
-    """Expensive trials, few trials allowed — expect Hyperband + Adam."""
     return [
         ProjectContext(
             optimization_goal="minimize_training_time",

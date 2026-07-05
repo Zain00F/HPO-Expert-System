@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-"""
-Interactive CLI — questionnaire converts answers into Facts.
-
-Run from repo root:
-  python -m hpo_expert.cli.interactive
-"""
-
 from __future__ import annotations
 
 import sys

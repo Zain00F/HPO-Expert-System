@@ -1,8 +1,3 @@
-"""
-Stage 4: Range Suggestion Rules.
-Suggests hyperparameter search spaces and fixed scalar values based on previous stages.
-"""
-
 from experta import MATCH, NOT, TEST, Rule
 
 from hpo_expert.facts.context import ComputeConstraints
@@ -25,8 +20,6 @@ _SEQUENTIAL_ARCHITECTURES = {
 
 
 class RangeRules:
-    """Mixin: Contains expert rules for hyperparameter range suggestion and constraints."""
-
     # 1. OPTIMIZER-BOUND PARAMETERS BRANCH 
     @Rule(
         ReasoningStage(current=ReasoningStageId.RANGES.value),
@@ -36,7 +29,6 @@ class RangeRules:
         salience=70,
     )
     def range_adamw_sequential(self, arch):
-        """AdamW ranges for Sequential/Attention contexts."""
         conf = confidence_from_score(5)
         self.declare(RangeChoice(parameter="optimizer_bound", strategy="adamw_sequential", confidence=conf))
         self.declare(
@@ -62,7 +54,6 @@ class RangeRules:
         salience=70,
     )
     def range_adamw_spatial(self, arch):
-        """AdamW ranges for CNN/MLP/Other spatial contexts."""
         conf = confidence_from_score(5)
         self.declare(RangeChoice(parameter="optimizer_bound", strategy="adamw_spatial", confidence=conf))
         self.declare(
@@ -87,7 +78,6 @@ class RangeRules:
         salience=70,
     )
     def range_adam_standard(self):
-        """Standard Adam boundaries."""
         conf = confidence_from_score(5)
         self.declare(RangeChoice(parameter="optimizer_bound", strategy="adam_standard", confidence=conf))
         self.declare(
@@ -113,7 +103,6 @@ class RangeRules:
         salience=70,
     )
     def range_sgd_momentum(self, opt):
-        """Standard SGD + Momentum boundaries."""
         conf = confidence_from_score(5)
         self.declare(RangeChoice(parameter="optimizer_bound", strategy="sgd_momentum", confidence=conf))
         self.declare(
@@ -141,7 +130,6 @@ class RangeRules:
         salience=70,
     )
     def range_batch_size_high_perf(self):
-        """High-performance batch size range."""
         conf = confidence_from_score(4)
         self.declare(RangeChoice(parameter="batch_size", strategy="high_performance", confidence=conf))
         self.declare(
@@ -165,7 +153,6 @@ class RangeRules:
         salience=70,
     )
     def range_batch_size_constrained(self):
-        """Resource-constrained batch size range."""
         conf = confidence_from_score(4)
         self.declare(RangeChoice(parameter="batch_size", strategy="resource_constrained", confidence=conf))
         self.declare(
@@ -199,7 +186,6 @@ class RangeRules:
         salience=70,
     )
     def range_dropout_high_regularization(self, dtype, count):
-        """High overfitting risk (Large Model + Small Dataset) -> High Dropout range."""
         conf = confidence_from_score(5)
         self.declare(RangeChoice(parameter="dropout", strategy="high_regularization", confidence=conf))
         self.declare(
@@ -233,7 +219,6 @@ class RangeRules:
         salience=70,
     )
     def range_dropout_standard(self, scale, dtype, count):
-        """Standard overfitting risk -> Normal Dropout range."""
         conf = confidence_from_score(4)
         self.declare(RangeChoice(parameter="dropout", strategy="standard_regularization", confidence=conf))
         self.declare(

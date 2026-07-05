@@ -1,9 +1,3 @@
-"""
-Optimizer narrowing — family first, then specific optimizer.
-
-Stages: optimizer_family → optimizer_specific
-"""
-
 from experta import MATCH, NOT, TEST, Rule ,AS
 
 from hpo_expert.facts.model import ModelArchitecture
@@ -30,9 +24,6 @@ _ADAPTIVE_ARCHITECTURES = {
 
 
 class OptimizerRules:
-    """Mixin: optimizer family and variant selection."""
-
-
     @Rule(
         ReasoningStage(current=ReasoningStageId.OPTIMIZER_FAMILY.value),
         ModelArchitecture(architecture_type=MATCH.arch, parameter_count=MATCH.params),

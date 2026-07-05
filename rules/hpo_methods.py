@@ -1,8 +1,3 @@
-"""
-Direct HPO method selection.
-Category layer removed because each category currently maps to one method.
-"""
-
 from experta import MATCH, NOT, TEST, Rule
 
 from hpo_expert.facts.context import ComputeConstraints, OptimizationBudget, ProjectContext
@@ -20,8 +15,6 @@ from hpo_expert.utils.scoring import confidence_from_score
 
 
 class HPOMethodRules:
-    """Mixin: Direct HPO method selection."""
-
     # ---------------------------------------------------------
     # GRID SEARCH
     # ---------------------------------------------------------

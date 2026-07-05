@@ -1,5 +1,3 @@
-"""HPO Expert System — rule-based consultant for neural-network hyperparameter optimization."""
-
 from hpo_expert.utils.compat import patch_experta_collections
 
 patch_experta_collections()

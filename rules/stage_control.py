@@ -1,8 +1,3 @@
-"""
-Stage gating — ensures progressive narrowing.
-
-Salience 100: bootstrap and transitions fire before content rules in the same cycle.
-"""
 
 from experta import AS, NOT, OR, Rule
 
@@ -20,8 +15,6 @@ from hpo_expert.utils.enums import ConsultationTypeId, ReasoningStageId
 
 
 class StageControlRules:
-    """Mixin: attach to HPOEngine via multiple inheritance."""
-
     @Rule(
         NOT(ReasoningStage()),
         OR(
@@ -31,7 +24,6 @@ class StageControlRules:
         salience=100,
     )
     def begin_pre_training(self):
-        """Start pre-training consultation at HPO method selection."""
         self.declare(ReasoningStage(current=ReasoningStageId.HPO_METHOD.value))
 
     @Rule(
@@ -40,7 +32,6 @@ class StageControlRules:
         salience=100,
     )
     def begin_post_training(self):
-        """Start post-training diagnosis at identification stage."""
         self.declare(ReasoningStage(current=ReasoningStageId.DIAGNOSIS_IDENTIFY.value))
 
     @Rule(
@@ -102,6 +93,5 @@ class StageControlRules:
         salience=85,
     )
     def advance_to_ranges(self, stage):
-        """Transition from Search Space stage to Range Suggestion stage."""
         self.retract(stage)
         self.declare(ReasoningStage(current=ReasoningStageId.RANGES.value))   

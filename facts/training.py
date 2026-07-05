@@ -1,6 +1,5 @@
 from experta import Fact, Field
 
-
 class CurrentTrainingConfig(Fact):
     optimizer = Field(str, mandatory=True)
     learning_rate = Field(float, mandatory=True)
@@ -12,14 +11,6 @@ class CurrentTrainingConfig(Fact):
 
 
 class TrainingObservation(Fact):
-    """
-    Raw post-training observations supplied by the client.
-    The expert system infers diagnosis — the client never declares it.
-
-    Accuracies are percentages in [0, 100] (e.g. 85.0 for 85%).
-    See docs/KNOWLEDGE_ACQUISITION_DIAGNOSIS.md for evidence definitions.
-    """
-
     training_loss = Field(float, mandatory=False, default=None)
     validation_loss = Field(float, mandatory=False, default=None)
     training_accuracy = Field(float, mandatory=False, default=None)

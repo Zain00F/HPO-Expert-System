@@ -1,7 +1,3 @@
-"""
-Search Space Prioritization Rules.
-Implements Google Playbook & academic 2025 constraints for active search and freezing.
-"""
 
 from experta import MATCH, NOT, TEST, Rule
 
@@ -15,9 +11,6 @@ _SPATIAL_ARCHITECTURES = {"cnn", "mlp"}
 
 
 class SearchSpaceRules:
-    """Mixin: Contains expert rules for partitioning and prioritizing hyperparameter search spaces."""
-
-    
 
     # 1. BRANCH 1: STRICT RESOURCE CHECK (Yes) -> BatchNorm Check
     @Rule(
@@ -66,7 +59,6 @@ class SearchSpaceRules:
         salience=84,
     )
     def space_strict_resource_extreme_focus(self, arch):
-        """[Safe_Def Node] Strict resources without BatchNorm."""
         reasons = [
             "Strict budget condition met (GPU unavailable OR max_trials <= 20).",
             f"Architecture '{arch}' — No active Batch Normalization constraints detected.",
@@ -101,7 +93,6 @@ class SearchSpaceRules:
         salience=75,
     )
     def space_sequential_warmup(self, arch):
-        """[Arch_Trans Node] High resource + Transformer/LLM/RNN."""
         reasons = [
             "Sufficient resources verified (GPU enabled AND max_trials > 20).",
             f"Architecture '{arch}' is sequential/attention-based.",
@@ -141,7 +132,6 @@ class SearchSpaceRules:
         salience=72,
     )
     def space_spatial_high_overfitting(self, arch):
-        """[CNN_Reg Node] High resource + CNN/MLP + High Overfitting Risk."""
         reasons = [
             "Sufficient resources verified (GPU enabled AND max_trials > 20).",
             f"High Overfitting Risk: Large '{arch}' capacity operating on a small dataset profile.",
@@ -175,7 +165,6 @@ class SearchSpaceRules:
         salience=70,
     )
     def space_spatial_standard(self, arch):
-        """[CNN_Standard Node] High resource + CNN/MLP + Normal Risk."""
         reasons = [
             "Sufficient resources verified (GPU enabled AND max_trials > 20).",
             f"Standard '{arch}' profile: dataset capacity matches model footprint.",
@@ -204,7 +193,6 @@ class SearchSpaceRules:
         salience=50,
     )
     def space_fallback_safe_default(self):
-        """[Fallback Node] Safe default when no specific branch matches."""
         reasons = [
             "No specific architecture or resource pattern matched.",
             "Falling back to general-purpose search strategy.",

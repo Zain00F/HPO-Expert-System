@@ -25,7 +25,6 @@ class HPOExpertEngine(
 
 
     def recommendations_as_dicts(self) -> list[dict]:
-        """Serialize recommendations for reporting."""
         out = []
         for fact in self.facts.values():
             if type(fact).__name__ == "Recommendation":

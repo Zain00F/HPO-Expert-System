@@ -1,12 +1,9 @@
-"""Human-readable formatting for Recommendation facts."""
-
 from __future__ import annotations
 
 from typing import Any
 
 
 def format_recommendation(rec: Any) -> str:
-    """Format a single Recommendation fact."""
     lines = [
         f"[{rec['priority'].upper()}] {rec['category']}: {rec['recommendation']}",
         f"  Confidence: {rec.get('confidence', 'medium')}",
@@ -21,7 +18,6 @@ def format_recommendation(rec: Any) -> str:
 
 
 def format_report(recommendations: list[Any], title: str = "HPO Expert Report") -> str:
-    """Build a full text report from collected recommendations."""
     if not recommendations:
         return f"{title}\n\n(No recommendations produced — declare more input facts.)"
 

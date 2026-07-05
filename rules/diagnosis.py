@@ -1,14 +1,3 @@
-"""
-Post-training diagnosis — staged rule chaining.
-
-Expert knowledge: generalization gap and learning-curve behaviour
-(Goodfellow et al.; Bishop; Prechelt — early stopping).
-Discrete thresholds: utils/heuristic_thresholds.py (implementation heuristics).
-Full acquisition notes: docs/KNOWLEDGE_ACQUISITION_DIAGNOSIS.md.
-
-Observation → Diagnosis → PossibleCause → Recommendation
-One logical inference step per rule.
-"""
 
 from experta import MATCH, NOT, TEST, Rule
 
@@ -29,15 +18,6 @@ from hpo_expert.utils.scoring import confidence_from_score
 
 
 class DiagnosisRules:
-    """Mixin: post-training diagnosis identify → cause → recommend."""
-
-    # ------------------------------------------------------------------
-    # Stage: diagnosis_identify — infer Diagnosis from observations ONLY
-    #
-    # Theory: generalization gap (val worse than train) → overfitting.
-    # Heuristic boundary: HT.MAX_HEALTHY_LOSS_RATIO, HT.MIN_OVERFIT_ACC_GAP.
-    # ------------------------------------------------------------------
-
     @Rule(
         ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
         ReasoningStage(current=ReasoningStageId.DIAGNOSIS_IDENTIFY.value),
@@ -46,7 +26,6 @@ class DiagnosisRules:
         salience=90,
     )
     def diagnose_nan_loss(self):
-        """NaN is observed, not inferred — numerical failure already occurred."""
         self.declare(
             Diagnosis(
                 issue=DiagnosisIssue.NAN_LOSS.value,
@@ -62,7 +41,6 @@ class DiagnosisRules:
         salience=89,
     )
     def diagnose_inf_loss(self):
-        """Inf is observed — overflow or unstable optimization."""
         self.declare(
             Diagnosis(
                 issue=DiagnosisIssue.INF_LOSS.value,
@@ -88,7 +66,6 @@ class DiagnosisRules:
         salience=70,
     )
     def diagnose_overfitting_loss_gap(self):
-        """Generalization gap: validation loss significantly exceeds training loss."""
         self.declare(
             Diagnosis(
                 issue=DiagnosisIssue.OVERFITTING.value,
@@ -114,7 +91,6 @@ class DiagnosisRules:
         salience=69,
     )
     def diagnose_overfitting_acc_gap(self):
-        """Generalization gap: training accuracy significantly exceeds validation."""
         self.declare(
             Diagnosis(
                 issue=DiagnosisIssue.OVERFITTING.value,
@@ -141,7 +117,6 @@ class DiagnosisRules:
         salience=60,
     )
     def diagnose_underfitting_high_loss(self):
-        """Poor performance on both sets with similar loss — little generalization gap."""
         self.declare(
             Diagnosis(
                 issue=DiagnosisIssue.UNDERFITTING.value,
@@ -169,7 +144,6 @@ class DiagnosisRules:
         salience=59,
     )
     def diagnose_underfitting_low_accuracy(self):
-        """Both accuracies poor and similar — underfitting pattern."""
         self.declare(
             Diagnosis(
                 issue=DiagnosisIssue.UNDERFITTING.value,

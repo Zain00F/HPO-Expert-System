@@ -1,7 +1,3 @@
-"""
-Sample evidence bundles for post-training diagnosis testing.
-"""
-
 from __future__ import annotations
 
 from hpo_expert.facts.consultation import ConsultationType
@@ -12,7 +8,6 @@ from hpo_expert.utils.enums import ConsultationTypeId
 
 
 def scenario_overfitting_gap() -> list:
-    """Large train/val loss gap — expect Overfitting diagnosis."""
     return [
         ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
         TrainingObservation(training_loss=0.2, validation_loss=0.9),
@@ -41,7 +36,6 @@ def scenario_overfitting_gap() -> list:
 
 
 def scenario_underfitting_high_loss() -> list:
-    """High loss on train and val — expect Underfitting diagnosis."""
     return [
         ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
         TrainingObservation(
@@ -68,7 +62,6 @@ def scenario_underfitting_high_loss() -> list:
 
 
 def scenario_nan_loss() -> list:
-    """NaN flag set — expect NaN Loss diagnosis."""
     return [
         ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
         TrainingObservation(nan_detected=True),
@@ -82,7 +75,6 @@ def scenario_nan_loss() -> list:
 
 
 def scenario_inf_loss() -> list:
-    """Inf flag set — expect Inf Loss diagnosis."""
     return [
         ConsultationType(mode=ConsultationTypeId.POST_TRAINING.value),
         TrainingObservation(inf_detected=True),
